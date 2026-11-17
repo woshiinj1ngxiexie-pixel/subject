@@ -70,6 +70,10 @@ RULES = {
         r"(?:send|upload|email|post|exfiltrate).{0,50}"
         r"(?:password|credential|API[\s_-]?key|secret|confidential|private data)"
         r".{0,40}(?:external|third.party|server|URL)",
+
+        r"(?:機密|密碼|憑證|API[\s_-]?key|secret|資料|內容)"
+        r".{0,35}(?:傳送|寄送|上傳|發送|外傳)"
+        r".{0,35}(?:外部|第三方|伺服器|網址)",
     ],
 
     "R04_TOOL_REDIRECTION": [
@@ -148,6 +152,30 @@ def inspect_tool_output(
     # =================================
     # 8. 風險分類
     # =================================
+
+        # 排除明確的教學引用情境
+    educational_context = re.search(
+        r"[「『\"]\s*忽略.{0,12}(?:先前|之前|以上|所有)?的?(?:指令|規則|要求)"
+        r"\s*[」』\"].{0,20}(?:是|為).{0,15}(?:例子|典型|範例)",
+        text,
+        re.IGNORECASE
+    )
+
+    if educational_context and "R01_INSTRUCTION_OVERRIDE" in matched_rules:
+        matched_rules.remove("R01_INSTRUCTION_OVERRIDE")
+
+        # 排除明確禁止資料外傳的否定句
+    negated_exfiltration = re.search(
+        r"(?:請勿|不要|不得|禁止|切勿).{0,15}"
+        r"(?:將|把)?\s*(?:機密|密碼|憑證|API[\s_-]?key|secret|資料|內容)"
+        r".{0,25}(?:傳送|寄送|上傳|發送|外傳)"
+        r".{0,25}(?:外部|第三方|伺服器|網址)",
+        text,
+        re.IGNORECASE
+    )
+
+    if negated_exfiltration and "R03_DATA_EXFILTRATION" in matched_rules:
+        matched_rules.remove("R03_DATA_EXFILTRATION")
 
     has_override = "R01_INSTRUCTION_OVERRIDE" in matched_rules
 
